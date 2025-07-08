@@ -1,0 +1,21 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment files
+.env
+*.env
+
+# Test & report outputs
+reports/
+allure-results/
+allure-report/
+*.log
+
+# IDE / System
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
