@@ -1,0 +1,4 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","19157","Place Order: Login before Checkout","tests.ui","Tue Jul 08 15:46:32 MSK 2025","passed","Tue Jul 08 15:46:51 MSK 2025","","UI Tests","",""
+"","1268","Search product using keyword","tests.api","Tue Jul 08 15:46:27 MSK 2025","passed","Tue Jul 08 15:46:29 MSK 2025","","API Tests","",""
+"","1347","Verify login with invalid credentials","tests.api","Tue Jul 08 15:46:26 MSK 2025","passed","Tue Jul 08 15:46:27 MSK 2025","","API Tests","",""
