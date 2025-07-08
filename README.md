@@ -23,15 +23,15 @@ UI	   Place Order: Login before Checkout	Test Case #16
 📂 Project Structure
 
 AutomationExercise/
-├── conftest.py               # Shared fixtures for Playwright
-├── pytest.ini                # Report generation configs
-├── requirements.txt          # Python dependencies
-├── README.md                  # This file
-├── ui/                       
-│   └── ui_test.py            # UI tests using Playwright
+├── conftest.py # Shared fixtures for Playwright
+├── pytest.ini # Report generation configs
+├── requirements.txt # Python dependencies
+├── README.md # This file
+├── ui/
+│ └── ui_test.py # UI tests using Playwright
 └── tests/
-    └── api/
-        └── api_test.py       # API tests using Playwright's APIRequestContext
+└── api/
+└── api_test.py # API tests using Playwright's APIRequestContext
 
 ⚙️ Setup Instructions
 
