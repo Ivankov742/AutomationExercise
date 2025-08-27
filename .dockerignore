@@ -1,0 +1,14 @@
+.venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+reports/
+allure-report/
+allure-results/
+report.html
+.git
+.gitignore
+.idea/
+.vscode/

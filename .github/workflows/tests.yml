@@ -2,7 +2,11 @@ name: tests
 
 on:
   push:
+    branches:
+      - "**"          # тесты на всех ветках
   pull_request:
+    branches:
+      - main          # тесты на PR в main
 
 permissions:
   contents: read
@@ -14,71 +18,75 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
-
+    env:
+      PYTHONUNBUFFERED: "1"
+      CI: "true"
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
-          cache-dependency-path: requirements.txt
+          python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          python -m playwright install --with-deps
 
-      - name: Install Playwright browsers
-        run: python -m playwright install --with-deps
-
-      - name: Prepare report dirs
-        run: mkdir -p reports/html reports/allure-results
-
-      - name: Run tests (UI + API)
+      - name: Run tests (headless)
         run: |
+          mkdir -p reports/html reports/allure-results
           pytest -q --tracing=retain-on-failure --video=retain-on-failure
-        env:
-          PYTHONWARNINGS: ignore
 
-      - name: Generate Allure Report
-        uses: simple-elf/allure-report-action@master
-        with:
-          allure_results: reports/allure-results
-          allure_report: reports/allure-report
-
-      - name: Upload HTML report (artifact)
+      - name: Upload HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: html-report
           path: reports/html/report.html
 
-      - name: Upload Allure results (artifact)
+      - name: Upload Allure results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: allure-results
           path: reports/allure-results
 
-      - name: Upload Pages artifact (Allure site)
-        if: always()
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: reports/allure-report
-
   deploy:
-    needs: build-and-test
+    # ВАЖНО: деплой запускается ТОЛЬКО из main при push
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: test
     runs-on: ubuntu-latest
-    if: always()
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
+      - uses: actions/checkout@v4
+
+      - name: Download Allure results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results
+          path: reports/allure-results
+
+      - name: Generate Allure report
+        uses: simple-elf/allure-report-action@v1
+        with:
+          allure_results: reports/allure-results
+          allure_report: reports/allure-report
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: reports/allure-report
+
+      - id: deployment
+        name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
