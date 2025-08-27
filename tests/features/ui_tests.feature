@@ -1,10 +1,15 @@
-Feature: UI Tests
+Feature: Place Order - Login before Checkout
+  As a signed-in user
+  I want to add a product and place an order
+  So that I can complete a purchase
 
-  Scenario: Place Order - Login before Checkout
+  Background:
     Given I open the home page
     And I login with valid credentials
-    And I add a product to the cart
+
+  Scenario: Place order successfully
+    Given I add a product to the cart
     And I proceed to checkout
-    And I fill payment details
+    And I fill order message
     When I place the order
     Then the order should be confirmed

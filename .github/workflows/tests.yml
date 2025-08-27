@@ -4,13 +4,11 @@ on:
   push:
   pull_request:
 
-# Нужно для деплоя Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Чтобы новые деплои отменяли предыдущие
 concurrency:
   group: "pages"
   cancel-in-progress: true
@@ -38,21 +36,21 @@ jobs:
       - name: Install Playwright browsers
         run: python -m playwright install --with-deps
 
-      # Запускаем тесты (HTML и Allure сырые результаты создаются за счёт pytest.ini)
+      - name: Prepare report dirs
+        run: mkdir -p reports/html reports/allure-results
+
       - name: Run tests (UI + API)
         run: |
           pytest -q --tracing=retain-on-failure --video=retain-on-failure
         env:
           PYTHONWARNINGS: ignore
 
-      # Генерим статический Allure из raw результатов
       - name: Generate Allure Report
         uses: simple-elf/allure-report-action@master
         with:
           allure_results: reports/allure-results
           allure_report: reports/allure-report
 
-      # Сохраняем HTML-репорт как артефакт (удобно скачать из Actions)
       - name: Upload HTML report (artifact)
         if: always()
         uses: actions/upload-artifact@v4
@@ -60,7 +58,6 @@ jobs:
           name: html-report
           path: reports/html/report.html
 
-      # Сохраняем сырые Allure результаты (на всякий случай)
       - name: Upload Allure results (artifact)
         if: always()
         uses: actions/upload-artifact@v4
@@ -68,7 +65,6 @@ jobs:
           name: allure-results
           path: reports/allure-results
 
-      # Готовим артефакт для GitHub Pages (именно эта строка делает сайт)
       - name: Upload Pages artifact (Allure site)
         if: always()
         uses: actions/upload-pages-artifact@v3
@@ -76,7 +72,6 @@ jobs:
           path: reports/allure-report
 
   deploy:
-    # Деплой стартует только после сборки
     needs: build-and-test
     runs-on: ubuntu-latest
     if: always()
@@ -84,7 +79,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      # Деплой артефакта на GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

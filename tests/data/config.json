@@ -1,0 +1,30 @@
+{
+  "base_url": "https://automationexercise.com",
+  "valid_user": {
+    "email": "qa_testuser_01@example.com",
+    "password": "123456"
+  },
+  "invalid_user": {
+    "email": "invalid@example.com",
+    "password": "wrongpassword"
+  },
+  "payment": {
+    "name_on_card": "QA Test User",
+    "card_number": "4111111111111111",
+    "cvc": "123",
+    "expiry_month": "12",
+    "expiry_year": "2026"
+  },
+  "search": {
+    "query_positive": "tshirt",
+    "query_negative": "no_such_product_12345"
+  },
+  "api": {
+    "login": "/api/verifyLogin",
+    "search": "/api/searchProduct"
+  },
+  "timeouts": {
+    "action_ms": 10000,
+    "navigation_ms": 45000
+  }
+}

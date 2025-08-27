@@ -1,40 +1,72 @@
-import requests
+import json
 import allure
+import pytest
 from pytest_bdd import scenarios, when, then, parsers
+from tests.api.client import ApiClient
 
-# Load feature file relative to this file
+pytestmark = pytest.mark.api
 scenarios("../features/api_tests.feature")
 
-BASE_URL = "https://automationexercise.com/api"
+@pytest.fixture(scope="session")
+def client(config):
+    return ApiClient(config["base_url"])
 
-@when(parsers.parse("I try to login with email '{email}' and password '{password}'"))
-def login_response(email, password, request):
-    with allure.step(f"Send POST request to {BASE_URL}/verifyLogin"):
-        response = requests.post(f"{BASE_URL}/verifyLogin", data={
-            "email": email,
-            "password": password
-        })
-        request._login_response = response
+@pytest.fixture
+def api_ctx():
+    class Ctx:
+        last_response = None
+    return Ctx()
 
-@then("the login response code should be 400 or 404")
-def verify_login_response_code(request):
-    response = request._login_response
-    assert response.status_code == 200, f"Expected HTTP 200, got {response.status_code}"
-    response_body = response.json()
-    assert response_body.get("responseCode") in [400, 404, 405], f"Unexpected responseCode: {response_body}"
+@when(parsers.parse('I POST "{endpoint}" with form data:'))
+def post_with_form_data(client: ApiClient, api_ctx, endpoint, doc_string):
+    data = json.loads(doc_string)
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    with allure.step(f'POST /api/{endpoint}'):
+        resp = client._post(f"/api/{endpoint}", data=data, headers=headers)
+        api_ctx.last_response = resp
 
-@when(parsers.parse("I search for product '{search_product}'"))
-def search_response(search_product, request):
-    with allure.step(f"Send POST request to {BASE_URL}/searchProduct"):
-        response = requests.post(f"{BASE_URL}/searchProduct", data={
-            "search_product": search_product
-        })
-        request._search_response = response
+@when(parsers.parse('I GET "{endpoint}"'))
+def get_endpoint(client: ApiClient, api_ctx, endpoint):
+    with allure.step(f'GET /api/{endpoint}'):
+        resp = client._get(f"/api/{endpoint}")
+        api_ctx.last_response = resp
 
-@then("the search response code should be 200")
-def verify_search_response_code(request):
-    response = request._search_response
-    assert response.status_code == 200, f"Expected HTTP 200, got {response.status_code}"
-    response_body = response.json()
-    assert response_body.get("responseCode") == 200, f"Unexpected responseCode: {response_body}"
-    assert "products" in response_body, "Expected 'products' in response"
+@then(parsers.parse("the API response status should be {code:d}"))
+def assert_status(api_ctx, code: int):
+    assert api_ctx.last_response is not None, "No response captured"
+    assert api_ctx.last_response.status_code == code
+
+@then(parsers.parse('the JSON field "{field}" should equal {expected}'))
+def assert_json_equals(api_ctx, field: str, expected: str):
+    body = api_ctx.last_response.json()
+    try:
+        exp_val = int(expected)
+    except ValueError:
+        exp_val = expected.strip('"').strip("'")
+    assert field in body, f'Missing field "{field}" in response'
+    assert body[field] == exp_val, f'Expected {field}={exp_val}, got {body[field]}'
+
+@then(parsers.parse('the JSON field "{field}" should contain "{snippet}"'))
+def assert_json_contains(api_ctx, field: str, snippet: str):
+    body = api_ctx.last_response.json()
+    assert field in body, f'Missing field "{field}" in response'
+    assert snippet.lower() in str(body[field]).lower(), f'"{snippet}" not in {field}: {body[field]}'
+
+@then(parsers.parse('the JSON should have key "{key}"'))
+def assert_json_has_key(api_ctx, key: str):
+    body = api_ctx.last_response.json()
+    assert key in body, f'Missing key "{key}" in response'
+
+@then(parsers.parse('the JSON field "{field}" should be one of {codes}'))
+def assert_json_in_codes(api_ctx, field: str, codes: str):
+    body = api_ctx.last_response.json()
+    assert field in body, f'Missing field "{field}" in response'
+    allowed = []
+    for part in codes.split(","):
+        part = part.strip()
+        if part:
+            try:
+                allowed.append(int(part))
+            except ValueError:
+                allowed.append(part.strip('"').strip("'"))
+    assert body[field] in allowed, f'Expected {field} in {allowed}, got {body[field]}'

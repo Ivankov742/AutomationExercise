@@ -1,18 +1,25 @@
-Feature: API Tests
+Feature: AutomationExercise API
+  The API should handle login and product search properly
 
-  Scenario: Login with invalid credentials
-    When I try to login with email 'invalid@example.com' and password 'wrongpassword'
-    Then the login response code should be 400 or 404
+  Scenario: Verify login with invalid credentials
+    When I POST "verifyLogin" with form data:
+      """
+      {"email": "invalid@example.com", "password": "wrongpassword"}
+      """
+    Then the API response status should be 200
+    And the JSON field "responseCode" should equal 404
+    And the JSON field "message" should contain "user not found"
 
-  Scenario: Search for a valid product
-    When I search for product 'tshirt'
-    Then the search response code should be 200
+  Scenario: Search product with keyword
+    When I POST "searchProduct" with form data:
+      """
+      {"search_product": "tshirt"}
+      """
+    Then the API response status should be 200
+    And the JSON field "responseCode" should equal 200
+    And the JSON should have key "products"
 
-  Scenario: Place Order - Login before Checkout
-    Given I open the home page
-    And I login with valid credentials
-    And I add a product to the cart
-    And I proceed to checkout
-    And I fill payment details
-    When I place the order
-    Then the order should be confirmed
+  Scenario: GET method is not allowed for searchProduct
+    When I GET "searchProduct"
+    Then the API response status should be 200
+    And the JSON field "responseCode" should be one of 400,405
