@@ -1,51 +1,69 @@
-# AutomationExercise - Automated Testing Project
+# AutomationExercise — Automated Testing Project
 
-## ✅ Project Overview
-
-This repository contains automated tests for the demo website [AutomationExercise.com](https://automationexercise.com/). 
-It demonstrates both **UI** and **API** automated testing using:
-- Python
-- Playwright (for UI)
-- requests (for API)
-- pytest + pytest-bdd (for test execution and BDD structure)
-- Allure & HTML reporting
-
-## 🚀 Automated Test Scenarios
-
-### ✅ UI Test (BDD)
-- Place Order: Login before Checkout ([Test Case](https://automationexercise.com/test_cases#collapse16))
-
-### ✅ API Tests
-- Login with invalid credentials (negative) ([API Doc](https://automationexercise.com/api_list#collapse10))
-- Search product (positive) ([API Doc](https://automationexercise.com/api_list#collapse5))
+![CI](https://github.com/Ivankov742/AutomationExercise/actions/workflows/tests.yml/badge.svg)
+[![Allure Report](https://img.shields.io/badge/Allure-Report-blue)](https://Ivankov742.github.io/AutomationExercise/)
 
 ---
 
-## 🔨 Project Structure
+## ✅ Overview
+
+Automated tests for the demo site [automationexercise.com](https://automationexercise.com/) covering both **UI** and **API** with clean structure, Page Object pattern, BDD examples, and dual reporting (HTML + Allure).
+
+**Tech stack**
+- Python, `pytest`, `pytest-bdd`
+- Playwright (UI) with Page Object
+- `requests` (API client)
+- Allure + HTML reports
+- GitHub Actions CI (build, test, publish Allure on GitHub Pages)
+
+---
+
+## 🚀 Test Scope
+
+### UI (BDD + POM)
+- **Place Order: Login before Checkout** — [Official Test Case #16](https://automationexercise.com/test_cases#collapse16)
+
+### API
+- **Verify login (negative)** — body returns `responseCode=404` on invalid credentials  
+- **Search product (positive)** — successful search by keyword  
+- **Search product (GET)** — validate `responseCode in {400, 405}` for unsupported method / missing param
+
+> The demo API can return slightly different codes/messages (e.g., 400 vs 405); tests account for that where appropriate.
+
+---
+
+## 🧱 Project Structure
+
+
 
 ```
 AutomationExercise/
-├── conftest.py               # Pytest fixtures (browser config, etc.)
-├── pytest.ini                # Pytest config (markers, reports)
-├── requirements.txt          # Dependencies
-├── README.md                  # This file
-├── reports/                   # Allure & HTML reports (.gitignore)
+├── .github/
+│ └── workflows/
+│  └── tests.yml    # GitHub Actions: tests + publish Allure to GitHub Pages
+├── .gitignore
+├── conftest.py   # Playwright/pytest fixtures, artifacts, trace/video, Allure env
+├── pytest.ini    # Markers, HTML + Allure addopts, defaults
+├── requirements.txt
+├── reports/   # Generated on the fly (ignored by Git)
 ├── tests/
-│   ├── api/
-│   │   ├── api_test.py
-│   │   ├── api_tests_bdd.py
-│   │
-│   ├── ui/
-│   │   ├── pages/
-│   │   │   └── place_order_page.py
-│   │   ├── ui_test.py
-│   │   └── ui_steps_bdd.py
-│   │
-│   └── features/
-│       ├── api_tests.feature
-│       └── ui_tests.feature
-└── .github/workflows/
-    └── ci.yml (optional)     # GitHub Actions CI/CD (optional)
+│ ├── data/
+│ │ └── config.json   # Base URL, creds, timeouts, payment data, etc.
+│ ├── utils/
+│ │ ├── data_loader.py
+│ │ └── logger.py
+│ ├── api/
+│ │ ├── client.py   # requests-based API client with logging + Allure attachments
+│ │ ├── api_test.py   # Classic pytest tests
+│ │ └── api_tests_bdd.py   # BDD steps for API
+│ ├── ui/
+│ │ ├── pages/
+│ │ │ └── place_order_page.py   # Page Object: locators/actions/assertions
+│ │ ├── ui_test.py # UI test (non-BDD) using POM
+│ │ └── ui_steps_bdd.py # BDD steps for UI
+│ └── features/
+│  ├── api_tests.feature # BDD scenarios: API
+│  └── ui_tests.feature # BDD scenario: Place Order
 ```
 
 ---
@@ -59,67 +77,106 @@ git clone https://github.com/YourUsername/AutomationExercise.git
 cd AutomationExercise
 ```
 
-2. Create and activate a virtual environment (optional but recommended):
+2. Virtual environment:
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
 ```
 
-3. Install dependencies:
+3. Install dependencies + Playwright browsers:
 
 ```bash
 pip install -r requirements.txt
-playwright install
+python -m playwright install
 ```
 
 ---
 
 ## ▶️ Running Tests
 
-### ✅ UI Test:
+### ✅ All Tests:
 ```bash
-pytest tests/ui/ui_test.py --alluredir=reports/allure-results
+pytest
 ```
 
-### ✅ API Tests:
+### ✅ Only UI (headless):
 ```bash
-pytest tests/api/api_test.py --alluredir=reports/allure-results
+pytest -m ui
 ```
 
-### ✅ BDD Tests:
+### ✅ UI with visible browser + trace + video (debug):
 ```bash
-pytest tests/api/api_tests_bdd.py --alluredir=reports/allure-results
-pytest tests/ui/ui_steps_bdd.py --alluredir=reports/allure-results
+pytest -m ui --headed --tracing=retain-on-failure --video=retain-on-failure
+```
+
+### ✅ Only API:
+```bash
+pytest -m api
+```
+
+### ✅ BDD(UI):
+```bash
+pytest tests/ui/ui_steps_bdd.py
+```
+
+### ✅ BDD(API):
+```bash
+pytest tests/api/api_tests_bdd.py
+```
+
+### ✅ Single test:
+```bash
+pytest tests/ui/ui_test.py::test_place_order_login_before_checkout --headed
+```
+
+### ✅ Optional: pick a browser:
+```bash
+pytest -m ui --browser=chromium
+# or: --browser=firefox / --browser=webkit
 ```
 
 ---
 
 ## 📊 Viewing Reports
 
-### ▶️ HTML Report:
+### ▶️ HTML(local):
 ```bash
-pytest --html=reports/html/report.html
+Open ./reports/html/report.html in your browser after a run.
 ```
 
-### ▶️ Allure Report:
+### ▶️ Allure (local):
 ```bash
+# Generate static site
 allure generate reports/allure-results -o reports/allure-report --clean
+# Open in browser
 allure open reports/allure-report
+
+# Or quick preview:
+allure serve reports/allure-results
 ```
+Allure (GitHub Pages)
+
+- CI generates and publishes a static Allure report to GitHub Pages on each run.
+- Use the badge link at the top once your first run completes successfully.
 
 ---
 
 ## 🛡️ Assumptions / Notes
-- Demo site may return inconsistent responses (e.g., API might return 405 instead of 404)
-- Payment flow may not complete in demo (but success message is checked)
-- Dummy credentials for login: `qa_testuser_01@example.com` / `123456`
+- POM (place_order_page.py): clear separation of locators, actions, assertions; resilient navigation (wait_until="domcontentloaded", key element waits, optional HTTPS→HTTP fallback).
+- Artifacts on failure: screenshot, page HTML, browser console logs, Playwright trace.zip, and optional video (when enabled).
+- API client (tests/api/client.py): wraps requests, logs request/response, attaches details to Allure.
 
 ---
 
-## 🔧 Bonus (Optional)
-- GitHub Actions CI/CD workflow in `.github/workflows/ci.yml` (setup ready)
-- Supports Playwright screenshots and Allure screenshots on failure
-- Example: Add BDD tests for future flows
+## 🧰 Troubleshooting
+- Headed in CI → will fail (no X server). Run headed only locally.
+- “Playwright browsers not found” → run python -m playwright install (use --with-deps on Linux if needed).
+- Allure empty → ensure pytest.ini has --alluredir=reports/allure-results, and you ran tests before generating.
+- Slow page load / timeouts → increase navigation_ms in config.json. Our POM also retries with HTTP if HTTPS is sluggish.
+- API responses differ → the public demo API can vary (e.g., 400 vs 405). Tests include tolerant checks where appropriate.
 
-
+---
+## 🔒 Credentials & Data
+- Demo login used in UI: qa_testuser_01@example.com / 123456
+- Payment data is dummy and used only to pass the form.
