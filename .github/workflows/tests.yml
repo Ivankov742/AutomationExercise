@@ -4,8 +4,19 @@ on:
   push:
   pull_request:
 
+# Нужно для деплоя Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Чтобы новые деплои отменяли предыдущие
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 jobs:
-  test:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,53 +38,53 @@ jobs:
       - name: Install Playwright browsers
         run: python -m playwright install --with-deps
 
-      # Запуск тестов. HTML и Allure создадутся автоматически за счёт pytest.ini (addopts)
+      # Запускаем тесты (HTML и Allure сырые результаты создаются за счёт pytest.ini)
       - name: Run tests (UI + API)
         run: |
           pytest -q --tracing=retain-on-failure --video=retain-on-failure
         env:
           PYTHONWARNINGS: ignore
 
-      # Сохраняем HTML-отчёт как артефакт
-      - name: Upload HTML report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: html-report
-          path: reports/html/report.html
-
-      # Сохраняем сырые результаты Allure
-      - name: Upload Allure results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-results
-          path: reports/allure-results
-
-  # Генерация статического Allure и публикация на GitHub Pages (gh-pages)
-  allure:
-    needs: test
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download Allure results
-        uses: actions/download-artifact@v4
-        with:
-          name: allure-results
-          path: reports/allure-results
-
+      # Генерим статический Allure из raw результатов
       - name: Generate Allure Report
         uses: simple-elf/allure-report-action@master
         with:
           allure_results: reports/allure-results
           allure_report: reports/allure-report
 
-      - name: Publish to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.ref == 'refs/heads/main' }}
+      # Сохраняем HTML-репорт как артефакт (удобно скачать из Actions)
+      - name: Upload HTML report (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: reports/allure-report
+          name: html-report
+          path: reports/html/report.html
+
+      # Сохраняем сырые Allure результаты (на всякий случай)
+      - name: Upload Allure results (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: reports/allure-results
+
+      # Готовим артефакт для GitHub Pages (именно эта строка делает сайт)
+      - name: Upload Pages artifact (Allure site)
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: reports/allure-report
+
+  deploy:
+    # Деплой стартует только после сборки
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: always()
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # Деплой артефакта на GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
